@@ -1,0 +1,9 @@
+*.DS_Store
+*.pyc
+
+env/
+
+/app/static/js/build/
+/app/static/js/node_modules/
+
+classy_data_2k16.csv
