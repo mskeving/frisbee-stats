@@ -5,9 +5,10 @@ from logging.config import fileConfig
 import os
 import sys
 
-from app import db, create_app
-
 sys.path.append(os.getcwd())
+
+# has to go under sys.path...
+from app import db, create_app
 
 
 # this is the Alembic Config object, which provides
