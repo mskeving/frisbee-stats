@@ -24,7 +24,7 @@ def create_player(player_info):
 
 
 def update_roster():
-    with open('classy_roster.csv', 'rb') as csvfile:
+    with open('data/classy_roster.csv', 'rb') as csvfile:
         reader = csv.DictReader(csvfile, delimiter=',')
         reader.next()
         roster_data = [row for row in reader]
@@ -108,7 +108,7 @@ def create_event(event_info, name_to_id):
 def import_events(players_name_to_id):
     # hey, get this from the API instead of downloading a csv.
     # http://www.ultianalytics.com/rest/view/team/5699535384870912/gamesdata
-    with open('classy_data_2k16.csv', 'rb') as csvfile:
+    with open('data/classy_data_2k16.csv', 'rb') as csvfile:
         reader = csv.DictReader(csvfile, delimiter=',')
         reader.next()
         event_data = [row for row in reader]
