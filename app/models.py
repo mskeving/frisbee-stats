@@ -1,3 +1,5 @@
+from sqlalchemy import and_
+
 from app import app, db
 from app.lib.helpers import percentage
 
@@ -18,14 +20,26 @@ class Player(db.Model):
 
     @classmethod
     @app.cache.memoize(timeout=30)
-    def female_player_ids(cls):
+    def female_ids(cls):
         players = cls.query.filter_by(gender="F").all()
         return [player.id for player in players]
 
     @classmethod
     @app.cache.memoize(timeout=30)
-    def male_player_ids(cls):
+    def male_ids(cls):
         players = cls.query.filter_by(gender="M").all()
+        return [player.id for player in players]
+
+    @classmethod
+    @app.cache.memoize(timeout=30)
+    def handler_ids(cls):
+        players = cls.query.filter_by(position="Handler").all()
+        return [player.id for player in players]
+
+    @classmethod
+    @app.cache.memoize(timeout=30)
+    def cutter_ids(cls):
+        players = cls.query.filter_by(position="Cutter").all()
         return [player.id for player in players]
 
 
@@ -60,7 +74,118 @@ class Event(db.Model):
     player_7 = db.Column(db.Integer, db.ForeignKey('players.id'))
 
     @classmethod
-    def receives_by_gender(cls):
+    def full_line_events(cls):
+        """
+        return all events that we have a full line of players for.
+        many lines don't have all 7 players listed. drat.
+        """
+        return cls.query.filter(
+            and_(
+                Event.player_1.isnot(None),
+                Event.player_2.isnot(None),
+                Event.player_3.isnot(None),
+                Event.player_4.isnot(None),
+                Event.player_5.isnot(None),
+                Event.player_6.isnot(None),
+                Event.player_7.isnot(None)
+            )).all()
+
+    @classmethod
+    def lines_split(cls):
+        """
+        Calculate how many lines we have as 4-3, 3-4, or other
+        """
+        events = cls.full_line_events()
+        male_players = Player.male_ids()
+
+        four_three_events = []
+        three_four_events = []
+        other = []
+
+        for event in events:
+            male_count = 0
+            players = [
+                event.player_1,
+                event.player_2,
+                event.player_3,
+                event.player_4,
+                event.player_5,
+                event.player_6,
+                event.player_7
+            ]
+            for player in players:
+                if player in male_players:
+                    male_count += 1
+
+            if male_count == 4:
+                four_three_events.append(event)
+            elif male_count == 3:
+                three_four_events.append(event)
+            else:
+                other.append(event)
+
+        return {
+            '4-3': four_three_events,
+            '3-4': three_four_events,
+            'other': other,
+        }
+
+    @classmethod
+    def handler_gender_split(cls):
+        """
+        This takes all events and counts how many "handlers" we have on the
+        line. It's not great because lots of people go back and forth between
+        handler and cutter.
+
+        It's also not great because it goes by events. Probably we should be
+        going by points.
+        """
+        handler_ids = Player.handler_ids()
+        female_handlers = [f for f in Player.female_ids() if f in handler_ids]
+        male_handlers = [f for f in Player.male_ids() if f in handler_ids]
+
+        all_events = cls.query.all()
+        ret = {}
+
+        for event in all_events:
+            male_count = 0
+            female_count = 0
+            players = [
+                event.player_1,
+                event.player_2,
+                event.player_3,
+                event.player_4,
+                event.player_5,
+                event.player_6,
+                event.player_7
+            ]
+            for player in players:
+                if player in male_handlers:
+                    male_count += 1
+                elif player in female_handlers:
+                    female_count += 1
+            breakdown = "{}-{}".format(male_count, female_count)
+            ret['total'] = ret.get('total', 0) + 1
+            ret[breakdown] = ret.get(breakdown, 0) + 1
+
+        return ret
+
+    @classmethod
+    def offense_line_split(cls):
+        """
+        On offense we get to choose 3-4 or 4-3. Calculate what
+        we're choosing.
+        """
+        lines_split = cls.lines_split()
+
+        return {
+            '4-3': [e for e in lines_split['4-3'] if e.line == "O"],
+            '3-4': [e for e in lines_split['3-4'] if e.line == "O"],
+            'other': [e for e in lines_split['other'] if e.line == "O"],
+        }
+
+    @classmethod
+    def receives_by_gender(cls, breakdown=None):
         """
         For the sake of this analysis, we're going to include all
         actions where there is a receiver. This includes:
@@ -74,21 +199,64 @@ class Event(db.Model):
         calculated by the passer of first play of O point.
         Need to calculate manually.
 
+        args:
+            - breakdown: '3-4' or '4-3' for line composition
+
         returns:
             - Total number of receives
             - Percentage Female
             - Percentage Male
         """
-        total = len(cls.query.filter(Event.receiver.isnot(None)).all())
+        if breakdown is None:
+            receive_events = cls.query.filter(Event.receiver.isnot(None)).all()
+        elif breakdown in ['3-4', '4-3']:
+            events_by_line = cls.lines_split()
+            all_events = events_by_line[breakdown]
+            receive_events = [e for e in all_events if e.receiver is not None]
+        else:
+            return "breakdown {} unknown".format(breakdown)
 
-        male_ids = Player.male_player_ids()
-        male = len(cls.query.filter(Event.receiver.in_(male_ids)).all())
+        male_ids = Player.male_ids()
+        male = [e for e in receive_events if e.receiver in male_ids]
 
-        female_ids = Player.female_player_ids()
-        female = len(cls.query.filter(Event.receiver.in_(female_ids)).all())
+        female_ids = Player.female_ids()
+        female = [e for e in receive_events if e.receiver in female_ids]
 
         return {
-            'total': total,
-            'female': "{}%".format(percentage(female, total)),
-            'male': "{}%".format(percentage(male, total)),
+            'total': len(receive_events),
+            'female': "{}%".format(percentage(len(female), len(receive_events))),
+            'male': "{}%".format(percentage(len(male), len(receive_events))),
+        }
+
+    @classmethod
+    def receives_for_position(cls, position="handlers"):
+        """
+        Returns breakdown of receives by gender for position - handler, cutter
+        """
+        if position == "handlers":
+            position_ids = Player.handler_ids()
+        elif position == "cutters":
+            position_ids = Player.cutter_ids()
+        else:
+            return "Position {} unknown".format(position)
+
+        events = cls.query.filter(Event.receiver.isnot(None)).all()
+        position_receives = [e for e in events if e.receiver in position_ids]
+
+        female_players = Player.female_ids()
+        female_position = [p for p in female_players if p in position_ids]
+        female_receives = [e for e in events if e.receiver in female_position]
+
+        male_players = Player.male_ids()
+        male_position = [p for p in male_players if p in position_ids]
+        male_receives = [e for e in events if e.receiver in male_position]
+
+        return {
+            'position': position,
+            'female': "{}%".format(
+                percentage(len(female_receives), len(position_receives))
+            ),
+            'male': "{}%".format(
+                percentage(len(male_receives), len(position_receives))
+            )
         }
