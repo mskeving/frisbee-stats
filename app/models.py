@@ -18,6 +18,24 @@ class Player(db.Model):
         # keys are unique per player.
         return "%s(%s)" % (self.__class__.__name__, self.id)
 
+    def female_passing_percentage(self):
+        """ Out of total passes this player does, what percentage
+        of those are going to a female player?
+
+        Take into account lineup? For example, if there's only 1
+        female cutter out there, should that handler be considered
+        more female friendly if they throw it to them?
+        """
+        female_ids = self.female_ids()
+
+        events = Event.query.filter_by(passer=self.id).all()
+        count = 0
+        for event in events:
+            if event.receiver in female_ids:
+                count += 1
+
+        return "{}%".format(percentage(count, len(events)))
+
     @classmethod
     @app.cache.memoize(timeout=30)
     def female_ids(cls):
