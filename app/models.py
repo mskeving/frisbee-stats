@@ -1,3 +1,4 @@
+from collections import defaultdict
 from sqlalchemy import and_
 
 from app import app, db
@@ -66,7 +67,8 @@ class Event(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
 
-    # unique string to identify event
+    # unique string to identify event. Same as plasticdisco.
+    # "{tourny} > {opp} > {our_score}-{their_score} > {play}"
     title = db.Column(db.String(255))
 
     date = db.Column(db.String(55))
@@ -90,6 +92,58 @@ class Event(db.Model):
     player_5 = db.Column(db.Integer, db.ForeignKey('players.id'))
     player_6 = db.Column(db.Integer, db.ForeignKey('players.id'))
     player_7 = db.Column(db.Integer, db.ForeignKey('players.id'))
+
+    def point_title(self):
+        """
+        Helpful for sorting events into same points. self.title
+        is too specific, because it takes "play" into account.
+
+        Could probably add this to the import script and have it
+        as a property instead.
+        """
+        return "{date}{opponent}{our_score}{their_score}".format(
+            date=self.date,
+            opponent=self.opponent.encode('utf-8'),
+            our_score=self.our_score,
+            their_score=self.their_score
+        )
+
+    @classmethod
+    def points(cls):
+        """
+        Distinguish points by unique title and put them in a dict.
+        Keys are points, values are list of events for that point.
+        """
+        points_to_events = defaultdict(list)
+        all_events = cls.query.all()
+        for event in all_events:
+            points_to_events[event.point_title()].append(event)
+
+        return points_to_events
+
+    @classmethod
+    def goals_by_gender(cls):
+        female_ids = Player.female_ids()
+        male_ids = Player.male_ids()
+        male_count = 0
+        female_count = 0
+
+        # Goals for opponent will have None receiver
+        goals = cls.query.filter(
+            cls.action == "Goal",
+            cls.receiver.isnot(None)
+        ).all()
+
+        for goal in goals:
+            if goal.receiver in female_ids:
+                female_count += 1
+            elif goal.receiver in male_ids:
+                male_count += 1
+
+        return {
+            'female': "{}%".format(percentage(female_count, len(goals))),
+            'male': "{}%".format(percentage(male_count, len(goals))),
+        }
 
     @classmethod
     def full_line_events(cls):
