@@ -257,6 +257,27 @@ class Event(db.Model):
         }
 
     @classmethod
+    def dees_by_gender(cls):
+        female_ids = Player.female_ids()
+        male_ids = Player.male_ids()
+        dee_events = cls.query.filter(cls.defender.isnot(None)).all()
+
+        male_count = 0
+        female_count = 0
+
+        for d in dee_events:
+            if d.defender in female_ids:
+                female_count += 1
+            elif d.defender in male_ids:
+                male_count += 1
+
+        return {
+            'female': "{}%".format(percentage(female_count, len(dee_events))),
+            'male': "{}%".format(percentage(male_count, len(dee_events))),
+            'total': len(dee_events)
+        }
+
+    @classmethod
     def receives_by_gender(cls, breakdown=None):
         """
         For the sake of this analysis, we're going to include all
