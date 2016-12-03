@@ -109,7 +109,7 @@ class Event(db.Model):
         )
 
     @classmethod
-    def points(cls):
+    def points_to_events(cls):
         """
         Distinguish points by unique title and put them in a dict.
         Keys are points, values are list of events for that point.
@@ -278,7 +278,7 @@ class Event(db.Model):
         }
 
     @classmethod
-    def receives_by_gender(cls, breakdown=None):
+    def receives_by_gender(cls, receive_events=None, breakdown=None):
         """
         For the sake of this analysis, we're going to include all
         actions where there is a receiver. This includes:
@@ -293,6 +293,8 @@ class Event(db.Model):
         Need to calculate manually.
 
         args:
+            - events: list. can pass in your own events to analyze
+                otherwise, will search entire set of events.
             - breakdown: '3-4' or '4-3' for line composition
 
         returns:
@@ -300,25 +302,62 @@ class Event(db.Model):
             - Percentage Female
             - Percentage Male
         """
-        if breakdown is None:
-            receive_events = cls.query.filter(Event.receiver.isnot(None)).all()
-        elif breakdown in ['3-4', '4-3']:
-            events_by_line = cls.lines_split()
-            all_events = events_by_line[breakdown]
-            receive_events = [e for e in all_events if e.receiver is not None]
-        else:
-            return "breakdown {} unknown".format(breakdown)
+        if receive_events is None:
+            if breakdown is None:
+                receive_events = (
+                    cls.query.filter(Event.receiver.isnot(None)).all()
+                )
+            elif breakdown in ['3-4', '4-3']:
+                events_by_line = cls.lines_split()
+                all_events = events_by_line[breakdown]
+                receive_events = [
+                    e for e in all_events if e.receiver is not None
+                ]
+            else:
+                return "breakdown {} unknown".format(breakdown)
 
         male_ids = Player.male_ids()
         male = [e for e in receive_events if e.receiver in male_ids]
 
         female_ids = Player.female_ids()
-        female = [e for e in receive_events if e.receiver in female_ids]
+        fem = [e for e in receive_events if e.receiver in female_ids]
 
         return {
             'total': len(receive_events),
-            'female': "{}%".format(percentage(len(female), len(receive_events))),
+            'female': "{}%".format(percentage(len(fem), len(receive_events))),
             'male': "{}%".format(percentage(len(male), len(receive_events))),
+        }
+
+    @classmethod
+    def gender_contribution_to_score(cls):
+        """
+        Find out percentage of touches on winning vs losing points. For
+        example, on winning points, are we using our women more? Or are
+        we losing those points?
+
+        Returns: {
+            'winning': {'male': 50%, 'female': 50%, 'total': 250}
+            'losing': {'male': 50%, 'female': 50%, 'total': 250}
+        }
+        """
+        winning_events = []
+        losing_events = []
+
+        for point, events in cls.points_to_events().iteritems():
+            for event in events:
+                if event.action == "Goal":
+                    if event.receiver is None:
+                        losing_events.extend(
+                            [e for e in events if e.receiver is not None]
+                        )
+                    else:
+                        winning_events.extend(
+                            [e for e in events if e.receiver is not None]
+                        )
+
+        return {
+            'winning': cls.receives_by_gender(receive_events=winning_events),
+            'losing': cls.receives_by_gender(receive_events=losing_events)
         }
 
     @classmethod
