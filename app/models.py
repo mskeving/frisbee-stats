@@ -5,10 +5,20 @@ from app import app, db
 from app.lib.helpers import percentage
 
 
+class Team(db.Model):
+    __tablename__ = "teams"
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(56))
+    region = db.Column(db.String(56))
+    players = db.relationship('Player', backref='team')
+
+
 class Player(db.Model):
     __tablename__ = "players"
 
     id = db.Column(db.Integer, primary_key=True)
+    team_id = db.Column(db.Integer, db.ForeignKey('teams.id'))
     name = db.Column(db.String(56))
     gender = db.Column(db.String(25))
     position = db.Column(db.String(25))
