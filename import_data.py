@@ -6,11 +6,15 @@ from app.models import Player, Event
 
 def create_player(player_info):
     name = player_info['Name']
+    team_name = player_info['Team']
 
     existing = Player.query.filter_by(name=name).first()
     if existing:
         print "Already found player {}. skipping.".format(name)
         return
+
+    team = Team.query.filter_by(name=team_name).first()
+    team_id = team.id if team else None
 
     print "Adding new player {}.".format(name)
     db.session.add(
@@ -19,6 +23,7 @@ def create_player(player_info):
             gender=player_info['Gender'],
             position=player_info['Position'],
             od=player_info['OD'],
+            team_id=team_id,
         )
     )
 
