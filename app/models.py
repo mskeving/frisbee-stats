@@ -175,16 +175,18 @@ class Event(db.Model):
     @classmethod
     def lines_split(cls):
         """
-        Calculate how many lines we have as 4-3, 3-4, or other
+        Calculate how many lines we have as 4-3, 3-4,
+        or other per POINT, not event
         """
-        events = cls.full_line_events()
+        points_to_events = cls.points_to_events()
         male_players = Player.male_ids()
 
         four_three_events = []
         three_four_events = []
         other = []
 
-        for event in events:
+        for point, events in points_to_events.iteritems():
+            event = events[0]
             male_count = 0
             players = [
                 event.player_1,
@@ -253,17 +255,22 @@ class Event(db.Model):
         return ret
 
     @classmethod
-    def offense_line_split(cls):
+    def line_split_count(cls, line=None):
         """
         On offense we get to choose 3-4 or 4-3. Calculate what
-        we're choosing.
+        lines are chosen based on offense or defense.
         """
+        if line is None:
+            line = "O"
+        elif line not in ["O", "D"]:
+            return "line has to be 'O' or 'D'"
+
         lines_split = cls.lines_split()
 
         return {
-            '4-3': [e for e in lines_split['4-3'] if e.line == "O"],
-            '3-4': [e for e in lines_split['3-4'] if e.line == "O"],
-            'other': [e for e in lines_split['other'] if e.line == "O"],
+            '4-3': len([e for e in lines_split['4-3'] if e.line == line]),
+            '3-4': len([e for e in lines_split['3-4'] if e.line == line]),
+            'other': len([e for e in lines_split['other'] if e.line == line]),
         }
 
     @classmethod
