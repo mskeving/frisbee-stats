@@ -1,0 +1,9 @@
+@import "vars";
+@import "mixins";
+@import "reset";
+
+.topNav {
+  border-bottom: 1px solid $darkGray;
+  padding: 10px 20px;
+  font-size: 18px;
+}
