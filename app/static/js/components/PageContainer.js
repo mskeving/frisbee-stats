@@ -1,22 +1,26 @@
 import React, { Component, PropTypes } from 'react';
+import { Link } from 'react-router';
 
-export class CustomComponent extends Component {
-  static propTypes = {
-    message: PropTypes.string,
-  }
-
+export class TopNav extends Component {
   render() {
-    const { message } = this.props;
-
-    return <div>{ message }</div>;
+    return (
+      <div className="topNav">
+        <Link to="/">Home</Link>
+      </div>
+    );
   }
 }
 
 export class PageContainer extends Component {
+  static propTypes = {
+    children: PropTypes.object,
+  }
+
   render() {
     return (
-      <div>
-        <CustomComponent message="Classy Ultimate" />
+      <div className="page">
+        <TopNav />
+        {this.props.children}
       </div>
     );
   }
