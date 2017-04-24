@@ -29,6 +29,16 @@ class Player(db.Model):
         # keys are unique per player.
         return "%s(%s)" % (self.__class__.__name__, self.id)
 
+    def to_api_dict(self):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'gender': self.gender,
+            'position': self.position,
+            'od': self.od,
+            'team_name': self.team.name,
+        }
+
     def female_passing_percentage(self):
         """ Out of total passes this player does, what percentage
         of those are going to a female player?
