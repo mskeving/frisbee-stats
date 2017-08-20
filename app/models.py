@@ -23,6 +23,7 @@ class Player(db.Model):
     gender = db.Column(db.String(25))
     position = db.Column(db.String(25))
     od = db.Column(db.String(25))
+    year = db.Column(db.String(25))
 
     def __repr__(self):
         # This will be included in cache_key to make sure
@@ -55,7 +56,7 @@ class Player(db.Model):
             if event.receiver in female_ids:
                 count += 1
 
-        return "{}%".format(percentage(count, len(events)))
+        return "{}: {}% of {} throws".format(self.name, percentage(count, len(events)), len(events))
 
     @classmethod
     @app.cache.memoize(timeout=30)
@@ -265,14 +266,12 @@ class Event(db.Model):
         return ret
 
     @classmethod
-    def line_split_count(cls, line=None):
+    def line_split_count(cls, line="O"):
         """
         On offense we get to choose 3-4 or 4-3. Calculate what
         lines are chosen based on offense or defense.
         """
-        if line is None:
-            line = "O"
-        elif line not in ["O", "D"]:
+        if line not in ["O", "D"]:
             return "line has to be 'O' or 'D'"
 
         lines_split = cls.lines_split()

@@ -1,14 +1,17 @@
 import csv
 
 from app import db
-from app.models import Player, Event
+from app.models import Player, Event, Team
 
+YEAR = '2017'
+ROSTER_FILE = 'data/classy_roster_{}.csv'.format(YEAR)
+STATS_FILE = 'data/classy_data_{}.csv'.format(YEAR)
 
 def create_player(player_info):
     name = player_info['Name']
-    team_name = player_info['Team']
+    team_name = "Classy"
 
-    existing = Player.query.filter_by(name=name).first()
+    existing = Player.query.filter_by(name=name, year=YEAR).first()
     if existing:
         print "Already found player {}. skipping.".format(name)
         return
@@ -24,12 +27,13 @@ def create_player(player_info):
             position=player_info['Position'],
             od=player_info['OD'],
             team_id=team_id,
+            year=YEAR,
         )
     )
 
 
 def update_roster():
-    with open('data/classy_roster.csv', 'rb') as csvfile:
+    with open(ROSTER_FILE, 'rb') as csvfile:
         reader = csv.DictReader(csvfile, delimiter=',')
         reader.next()
         roster_data = [row for row in reader]
@@ -113,7 +117,7 @@ def create_event(event_info, name_to_id):
 def import_events(players_name_to_id):
     # hey, get this from the API instead of downloading a csv.
     # http://www.ultianalytics.com/rest/view/team/5699535384870912/gamesdata
-    with open('data/classy_data_2k16.csv', 'rb') as csvfile:
+    with open(STATS_FILE, 'rb') as csvfile:
         reader = csv.DictReader(csvfile, delimiter=',')
         reader.next()
         event_data = [row for row in reader]
