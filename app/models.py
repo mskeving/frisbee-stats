@@ -101,8 +101,8 @@ class Event(db.Model):
     their_score = db.Column(db.Integer)
     event_type = db.Column(db.String(25))
     action = db.Column(db.String(25))
-    passer = db.Column(db.Integer)
-    receiver = db.Column(db.Integer)
+    passer = db.Column(db.Integer)  # user id
+    receiver = db.Column(db.Integer)  # user id
     defender = db.Column(db.Integer)
 
     # players on the line
@@ -128,6 +128,28 @@ class Event(db.Model):
             our_score=self.our_score,
             their_score=self.their_score
         )
+
+    @classmethod
+    def off_gender_passes(cls):
+        off_gender_passes = 0
+        same_gender_passes = 0
+
+        events = cls.query.all()
+        for event in events:
+            # todo: don't be so dumb about these queries.
+            passer = Player.query.filter(Player.id==event.passer).first()
+            receiver = Player.query.filter(Player.id==event.receiver).first()
+            if passer == None or receiver == None:
+                continue
+            if passer.gender != receiver.gender:
+                off_gender_passes += 1
+            else:
+                same_gender_passes += 1
+
+        return {
+            'off_gender': off_gender_passes,
+            'same_gender': same_gender_passes
+        }
 
     @classmethod
     def points_played(cls, user_id):
