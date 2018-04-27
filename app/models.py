@@ -130,6 +130,28 @@ class Event(db.Model):
         )
 
     @classmethod
+    def points_played(cls, user_id):
+        points_played = 0
+        points_to_events = cls.points_to_events()
+
+        for point, events in points_to_events.iteritems():
+            # we only care about the first event because that'll have
+            # the lineup for the entire point.
+            event = events[0]
+            if user_id in [
+                event.player_1,
+                event.player_2,
+                event.player_3,
+                event.player_4,
+                event.player_5,
+                event.player_6,
+                event.player_7,
+            ]:
+                points_played += 1
+
+        return points_played
+
+    @classmethod
     def points_to_events(cls):
         """
         Distinguish points by unique title and put them in a dict.
@@ -418,3 +440,44 @@ class Event(db.Model):
                 percentage(len(male_receives), len(position_receives))
             )
         }
+
+    @classmethod
+    def conversion_rate(cls):
+        """
+        Take each point, figure out what line we start off on, and then count
+        how many times it switches.
+
+        If O, count number of drops, throwaways in one point to get number of posessions.
+
+        all posessions that end in score/all possessions
+        """
+        points_to_events = cls.points_to_events()
+
+        line_to_possessions = {
+            'O': None,
+            'D': None,
+        }
+        line_to_goals = {
+            'O': None,
+            'D': None,
+        }
+
+        for point, events in points_to_events:
+            posessions = 0
+            goals = 0
+            line = events[0].line # determine if this is an O or D line
+            line_to_points[line] = line_to_points.get(line, 0) + 1
+
+            for event in events:
+                if event.line == 'O' and event.action in ['Drop', 'Throwaway']:
+                    posessions += 1
+                if event.line == 'O' and event.action in ['Goal']:
+                    goals += 1
+
+            line_to_possessions[line] = line_to_possessions.get(line, 0) + posessions
+
+        return {
+            'O': percentage(line_to_points['O']/line_to_possessions['O']),
+            'D': percentage(line_to_points['D']/line_to_possessions['D'])
+        }
+
