@@ -248,7 +248,7 @@ class Event(db.Model):
             )).all()
 
     @classmethod
-    def lines_split(cls):
+    def num_points_by_line_split(cls):
         """
         Calculate how many lines we have as 4-3, 3-4,
         or other per POINT, not event
@@ -256,8 +256,8 @@ class Event(db.Model):
         points_to_events = cls.points_to_events()
         male_players = Player.male_ids()
 
-        four_three_events = []
-        three_four_events = []
+        four_three_points = []
+        three_four_points = []
         other = []
 
         for point, events in points_to_events.iteritems():
@@ -284,8 +284,8 @@ class Event(db.Model):
                 other.append(event)
 
         return {
-            '4-3': four_three_events,
-            '3-4': three_four_events,
+            '4-3': four_three_points,
+            '3-4': three_four_points,
             'other': other,
         }
 
@@ -338,12 +338,12 @@ class Event(db.Model):
         if line not in ["O", "D"]:
             return "line has to be 'O' or 'D'"
 
-        lines_split = cls.lines_split()
+        num_points_by_line_split = cls.num_points_by_line_split()
 
         return {
-            '4-3': len([e for e in lines_split['4-3'] if e.line == line]),
-            '3-4': len([e for e in lines_split['3-4'] if e.line == line]),
-            'other': len([e for e in lines_split['other'] if e.line == line]),
+            '4-3': len([e for e in num_points_by_line_split['4-3'] if e.line == line]),
+            '3-4': len([e for e in num_points_by_line_split['3-4'] if e.line == line]),
+            'other': len([e for e in num_points_by_line_split['other'] if e.line == line]),
         }
 
     @classmethod
@@ -398,7 +398,7 @@ class Event(db.Model):
                     cls.query.filter(Event.receiver.isnot(None)).all()
                 )
             elif breakdown in ['3-4', '4-3']:
-                events_by_line = cls.lines_split()
+                events_by_line = cls.num_points_by_line_split()
                 all_events = events_by_line[breakdown]
                 receive_events = [
                     e for e in all_events if e.receiver is not None
