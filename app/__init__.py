@@ -3,7 +3,7 @@ from flask.ext.cache import Cache
 from flask.ext.sqlalchemy import SQLAlchemy
 
 # this needs to be here to run scripts. shrug.
-SQLALCHEMY_DATABASE_URI = "postgresql://localhost:5432/classy"
+SQLALCHEMY_DATABASE_URI = "postgresql://localhost:5432/classy2017"
 
 CACHE_TYPE = "simple"
 

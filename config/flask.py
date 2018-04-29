@@ -8,7 +8,7 @@ class Config(object):
 
 class Development(Config):
     DEBUG = True
-    SQLALCHEMY_DATABASE_URI = 'postgresql://localhost:5432/classy'
+    SQLALCHEMY_DATABASE_URI = 'postgresql://localhost:5432/classy2017'
 
 
 class Production(Config):

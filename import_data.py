@@ -3,7 +3,7 @@ import csv
 from app import db
 from app.models import Player, Event, Team
 
-YEAR = '2017'
+YEAR = '2016'
 ROSTER_FILE = 'data/classy_roster_{}.csv'.format(YEAR)
 STATS_FILE = 'data/classy_data_{}.csv'.format(YEAR)
 
