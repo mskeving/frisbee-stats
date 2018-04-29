@@ -162,7 +162,16 @@ class Event(db.Model):
         }
 
     @classmethod
-    def points_played(cls, user_id):
+    def points_played_by_players(cls):
+        num_points_by_player = {}
+        players = Player.query.all()
+        for player in players:
+            num_points_by_player[player.name] = cls.points_played_by_player(player.id)
+
+        return num_points_by_player
+
+    @classmethod
+    def points_played_by_player(cls, user_id):
         points_played = 0
         points_to_events = cls.points_to_events()
 
@@ -184,6 +193,7 @@ class Event(db.Model):
         return points_played
 
     @classmethod
+    @app.cache.memoize(timeout=30)
     def points_to_events(cls):
         """
         Distinguish points by unique title and put them in a dict.
