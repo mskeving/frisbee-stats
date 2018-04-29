@@ -131,20 +131,30 @@ class Event(db.Model):
 
     @classmethod
     def off_gender_passes(cls):
+        """
+        Count how many times a pass happens between same gendered players
+
+        returns
+            - counts (ints) of same vs off gendered passes
+        """
         off_gender_passes = 0
         same_gender_passes = 0
 
+        male_ids = Player.male_ids()
+        female_ids = Player.female_ids()
         events = cls.query.all()
+
         for event in events:
-            # todo: don't be so dumb about these queries.
-            passer = Player.query.filter(Player.id==event.passer).first()
-            receiver = Player.query.filter(Player.id==event.receiver).first()
-            if passer == None or receiver == None:
+            if event.passer == None or event.receiver == None:
                 continue
-            if passer.gender != receiver.gender:
-                off_gender_passes += 1
-            else:
+            same_gender = (
+                event.passer in male_ids and event.receiver in male_ids or
+                event.passer in female_ids and event.receiver in female_ids
+            )
+            if same_gender:
                 same_gender_passes += 1
+            else:
+                off_gender_passes += 1
 
         return {
             'off_gender': off_gender_passes,
